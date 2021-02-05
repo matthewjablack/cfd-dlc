@@ -8,6 +8,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <thread>
 
 #include "cfd/cfd_transaction.h"
 #include "cfdcore/cfdcore_address.h"
@@ -216,14 +217,29 @@ std::vector<AdaptorPair> DlcManager::CreateCetAdaptorSignatures(
   }
 
   std::vector<AdaptorPair> sigs;
+
+  std::vector<std::thread> ths;
+  std::mutex thread_lock;
   for (size_t i = 0; i < nb; i++) {
     std::vector<SchnorrPubkey> r_values;
     for (size_t j = 0; j < msgs[i].size(); j++) {
       r_values.push_back(oracle_r_values[j]);
     }
-    sigs.push_back(CreateCetAdaptorSignature(
+    ths.push_back(std::thread(
+      [
+        i, &sigs, cets, oracle_pubkey, r_values, funding_sk,
+        funding_script_pubkey, total_collateral, msgs, &thread_lock
+      ]() mutable {
+      AdaptorPair sig = CreateCetAdaptorSignature(
         cets[i], oracle_pubkey, r_values, funding_sk,
-        funding_script_pubkey, total_collateral, msgs[i]));
+        funding_script_pubkey, total_collateral, msgs[i]);
+      thread_lock.lock();
+      sigs.push_back(sig);
+      thread_lock.unlock();
+    }));
+  }
+  for (auto& th : ths) {
+    th.join();
   }
 
   return sigs;
