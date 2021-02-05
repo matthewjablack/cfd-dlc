@@ -218,10 +218,7 @@ std::vector<AdaptorPair> DlcManager::CreateCetAdaptorSignatures(
   }
 
   std::vector<AdaptorPair> sigs;
-
-  // for (size_t l = 0; l < nb; l++) {
-  //   sigs.push_back();
-  // }
+  std::mutex thread_lock;
 
   std::vector<std::thread> ths;
   for (size_t i = 0; i < nb; i++) {
@@ -229,33 +226,18 @@ std::vector<AdaptorPair> DlcManager::CreateCetAdaptorSignatures(
     for (size_t j = 0; j < msgs[i].size(); j++) {
       r_values.push_back(oracle_r_values[j]);
     }
-    // ths.push_back(std::thread([&PersonsVector[i]])(Person& p){ p.readBook(); });
-    // ths.push_back(std::thread(&GetCetAdaptorSignature, sigs, i,
-    //     cets[i], oracle_pubkey, r_values, funding_sk,
-    // funding_script_pubkey, total_collateral, msgs[i]));
-    ths.push_back(std::thread([i, &sigs, cets, oracle_pubkey, r_values, funding_sk, funding_script_pubkey, total_collateral, msgs]() mutable {
-      sigs.insert(i, CreateCetAdaptorSignature(
+    ths.push_back(std::thread(
+      [i, &sigs, cets, oracle_pubkey, r_values, funding_sk, funding_script_pubkey, total_collateral, msgs, &thread_lock]() mutable {
+      AdaptorPair sig = CreateCetAdaptorSignature(
         cets[i], oracle_pubkey, r_values, funding_sk,
-        funding_script_pubkey, total_collateral, msgs[i]));
-      std::cout << "From Thread ID : "<<std::this_thread::get_id() << " " << sigs.size() << " " << cets.size() << "\n";
+        funding_script_pubkey, total_collateral, msgs[i]);
+      thread_lock.lock();
+      sigs.push_back(sig);
+      thread_lock.unlock();
     }));
-    // sigs.push_back(CreateCetAdaptorSignature(
-    //     cets[i], oracle_pubkey, r_values, funding_sk,
-    // funding_script_pubkey, total_collateral, msgs[i]));
   }
   for (auto& th : ths) {
     th.join();
-  }
-
-  // std::vector<AdaptorPair> realSigs;
-
-  // for (size_t l = 0; l < nb; l++) {
-  //   realSigs.push_back(*sigs[l]);
-  // }
-
-  if (nb != sigs.size()) {
-    throw CfdException(CfdError::kCfdIllegalArgumentError,
-                       "issue with sigs");
   }
 
   return sigs;
