@@ -1,5 +1,7 @@
 // Copyright 2019 CryptoGarage
 
+#include <execution>
+
 #include "cfd/cfd_transaction.h"
 #include "cfdcore/cfdcore_amount.h"
 #include "cfdcore/cfdcore_ecdsa_adaptor.h"

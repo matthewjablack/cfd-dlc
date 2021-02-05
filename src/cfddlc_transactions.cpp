@@ -8,6 +8,8 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <thread>
+#include <iostream>
 
 #include "cfd/cfd_transaction.h"
 #include "cfdcore/cfdcore_address.h"
@@ -216,18 +218,60 @@ std::vector<AdaptorPair> DlcManager::CreateCetAdaptorSignatures(
   }
 
   std::vector<AdaptorPair> sigs;
+
+  // for (size_t l = 0; l < nb; l++) {
+  //   sigs.push_back();
+  // }
+
+  std::vector<std::thread> ths;
   for (size_t i = 0; i < nb; i++) {
     std::vector<SchnorrPubkey> r_values;
     for (size_t j = 0; j < msgs[i].size(); j++) {
       r_values.push_back(oracle_r_values[j]);
     }
-    sigs.push_back(CreateCetAdaptorSignature(
+    // ths.push_back(std::thread([&PersonsVector[i]])(Person& p){ p.readBook(); });
+    // ths.push_back(std::thread(&GetCetAdaptorSignature, sigs, i,
+    //     cets[i], oracle_pubkey, r_values, funding_sk,
+    // funding_script_pubkey, total_collateral, msgs[i]));
+    ths.push_back(std::thread([i, &sigs, cets, oracle_pubkey, r_values, funding_sk, funding_script_pubkey, total_collateral, msgs]() mutable {
+      sigs.insert(i, CreateCetAdaptorSignature(
         cets[i], oracle_pubkey, r_values, funding_sk,
         funding_script_pubkey, total_collateral, msgs[i]));
+      std::cout << "From Thread ID : "<<std::this_thread::get_id() << " " << sigs.size() << " " << cets.size() << "\n";
+    }));
+    // sigs.push_back(CreateCetAdaptorSignature(
+    //     cets[i], oracle_pubkey, r_values, funding_sk,
+    // funding_script_pubkey, total_collateral, msgs[i]));
+  }
+  for (auto& th : ths) {
+    th.join();
+  }
+
+  // std::vector<AdaptorPair> realSigs;
+
+  // for (size_t l = 0; l < nb; l++) {
+  //   realSigs.push_back(*sigs[l]);
+  // }
+
+  if (nb != sigs.size()) {
+    throw CfdException(CfdError::kCfdIllegalArgumentError,
+                       "issue with sigs");
   }
 
   return sigs;
 }
+
+// void DlcManager::GetCetAdaptorSignature(
+//   std::vector<AdaptorPair &> sigs, size_t i,
+//   const TransactionController& cet, const SchnorrPubkey& oracle_pubkey,
+//   const std::vector<SchnorrPubkey>& oracle_r_values,
+//   const Privkey& funding_sk, const Script& funding_script_pubkey,
+//   const Amount& total_collateral, const std::vector<ByteData256>& msgs) {
+//   const AdaptorPair test = CreateCetAdaptorSignature(cet, oracle_pubkey, oracle_r_values, funding_sk,
+//     funding_script_pubkey, total_collateral, msgs);
+//   sigs[i] = test;
+//   std::cout << "From Thread ID : "<<std::this_thread::get_id() << "\n";
+// }
 
 bool DlcManager::VerifyCetAdaptorSignature(
     const AdaptorPair& adaptor_pair, const TransactionController& cet,
@@ -560,5 +604,6 @@ Pubkey DlcManager::ComputeAdaptorPoint(
 
   return sigpoints.size() > 1 ? Pubkey::CombinePubkey(sigpoints) : sigpoints[0];
 }
+
 }  // namespace dlc
 }  // namespace cfd

@@ -298,6 +298,13 @@ class CFD_DLC_EXPORT DlcManager {
       const Amount& fund_output_amount,
       const std::vector<std::vector<ByteData256>>& msgs);
 
+//   static void GetCetAdaptorSignature(
+//     std::vector<AdaptorPair &> sigs, size_t i,
+//     const TransactionController& cet, const SchnorrPubkey& oracle_pubkey,
+//     const std::vector<SchnorrPubkey>& oracle_r_values,
+//     const Privkey& funding_sk, const Script& funding_script_pubkey,
+//     const Amount& total_collateral, const std::vector<ByteData256>& msgs);
+
   /**
    * @brief Verify that a signature for a fund transaction is valid.
    *
