@@ -36,6 +36,10 @@ if(NOT CFD_DLC_SRC_ROOT_DIR)
 set(CFD_DLC_SRC_ROOT_DIR   ${CMAKE_SOURCE_DIR})
 endif()
 
+if(NOT JSON_CPP_SRC_ROOT_DIR)
+set(JSON_CPP_SRC_ROOT_DIR   ${CMAKE_SOURCE_DIR})
+endif()
+
 if(NOT WIN32)
 if(ENABLE_RPATH)
 set(CMAKE_SKIP_BUILD_RPATH  FALSE)
@@ -114,6 +118,7 @@ set(USE_INSTALLED_LIBRARY  FALSE)
 set(LIBWALLY_LIBRARY wally)
 set(CFD_LIBRARY cfd)
 set(CFDCORE_LIBRARY cfdcore)
+set(JSONCPP_LIBRARY jsoncpp)
 set(UNIVALUE_LIBRARY univalue)
 set(INSTALLED_LIBRARY_DIR "")
 set(INSTALLED_INCLUDE_DIR "./")
@@ -121,9 +126,11 @@ else()
 set(USE_INSTALLED_LIBRARY  TRUE)
 pkg_check_modules(WALLY     REQUIRED wally)
 pkg_check_modules(CFDCORE   REQUIRED cfd-core)
+pkg_check_modules(JSONCPP   REQUIRED jsoncpp)
 pkg_check_modules(LIBUNIVALUE  REQUIRED libunivalue)
 set(CFD_LIBRARY ${CFD_LIBRARIES})
 set(CFDCORE_LIBRARY ${CFDCORE_LIBRARIES})
+set(JSONCPP_LIBRARY ${JSONCPP_LIBRARIES})
 set(LIBWALLY_LIBRARY ${WALLY_LIBRARIES})
 set(UNIVALUE_LIBRARY ${LIBUNIVALUE_LIBRARIES})
 
@@ -181,6 +188,14 @@ target_include_directories(${PROJECT_NAME}
     .
     ../src
     ${CFD_DLC_SRC_ROOT_DIR}/external/cfd-core/src/include
+    ${INSTALLED_INCLUDE_DIR}
+)
+
+target_include_directories(${PROJECT_NAME}
+  PRIVATE
+    .
+    ../src
+    ${JSON_CPP_SRC_ROOT_DIR}/external/jsoncpp/include
     ${INSTALLED_INCLUDE_DIR}
 )
 

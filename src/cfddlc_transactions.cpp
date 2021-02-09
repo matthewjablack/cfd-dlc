@@ -9,6 +9,8 @@
 #include <tuple>
 #include <vector>
 #include <thread>
+#include <iostream>
+#include <chrono>
 
 #include "cfd/cfd_transaction.h"
 #include "cfdcore/cfdcore_address.h"
@@ -21,6 +23,8 @@
 #include "cfdcore/cfdcore_transaction.h"
 #include "cfdcore/cfdcore_util.h"
 #include "secp256k1.h"  // NOLINT
+
+using namespace std::chrono;
 
 namespace cfd {
 namespace dlc {
@@ -195,13 +199,27 @@ AdaptorPair DlcManager::CreateCetAdaptorSignature(
     const std::vector<SchnorrPubkey>& oracle_r_values,
     const Privkey& funding_sk, const Script& funding_script_pubkey,
     const Amount& total_collateral, const std::vector<ByteData256>& msgs) {
+  auto start_adaptor_point = high_resolution_clock::now();
   auto adaptor_point =
       ComputeAdaptorPoint(msgs, oracle_r_values, oracle_pubkey);
+  auto stop_adaptor_point = high_resolution_clock::now();
+  auto duration_adaptor_point = duration_cast<microseconds>(stop_adaptor_point - start_adaptor_point);
+  std::cout << duration_adaptor_point.count() << "µs : adaptor_point" << std::endl;
 
+  auto start_sig_hash = high_resolution_clock::now();
   auto sig_hash = cet.GetTransaction().GetSignatureHash(
       0, funding_script_pubkey.GetData(), SigHashType(), total_collateral,
       WitnessVersion::kVersion0);
-  return AdaptorUtil::Sign(sig_hash, funding_sk, adaptor_point);
+  auto stop_sig_hash = high_resolution_clock::now();
+  auto duration_sig_hash = duration_cast<microseconds>(stop_sig_hash - start_sig_hash);
+  std::cout << duration_sig_hash.count() << "µs : sig_hash" << std::endl;
+
+  auto start_sig = high_resolution_clock::now();
+  const AdaptorPair sig = AdaptorUtil::Sign(sig_hash, funding_sk, adaptor_point);
+  auto stop_sig = high_resolution_clock::now();
+  auto duration_sig = duration_cast<microseconds>(stop_sig - start_sig);
+  std::cout << duration_sig.count() << "µs : sig" << std::endl;
+  return sig;
 }
 
 std::vector<AdaptorPair> DlcManager::CreateCetAdaptorSignatures(

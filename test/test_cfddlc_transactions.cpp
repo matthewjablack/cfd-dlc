@@ -7,6 +7,11 @@
 #include "cfddlc/cfddlc_transactions.h"
 #include "gtest/gtest.h"
 #include "wally_crypto.h"  // NOLINT
+#include "json/json.h"
+
+#include <iostream>
+#include <chrono>
+#include <fstream>
 
 using cfd::Amount;
 using cfd::core::AdaptorUtil;
@@ -36,6 +41,14 @@ using cfd::dlc::DlcManager;
 using cfd::dlc::DlcOutcome;
 using cfd::dlc::PartyParams;
 using cfd::dlc::TxInputInfo;
+
+using namespace std::chrono;
+
+std::ifstream ifs("base2.json");
+Json::Reader reader;
+Json::Value obj;
+reader.parse(ifs, obj);
+std::cout << "test " << obj[0]["payout"].asString() << std::endl;
 
 const std::vector<std::string> WIN_MESSAGES = {"WIN", "MORE"};
 const std::vector<std::string> LOSE_MESSAGES = {"LOSE", "LESS"};
@@ -401,10 +414,14 @@ TEST(DlcManager, CreateDlcTransactions) {
         {ORACLE_R_POINTS[0]}, fund_script, FUND_OUTPUT, {MESSAGES_HASH[i][0]});
   }
 
+  auto start_adaptor_sigs = high_resolution_clock::now();
   auto local_cet_adaptor_pairs = DlcManager::CreateCetAdaptorSignatures(
       cets, ORACLE_PUBKEY, {ORACLE_R_POINTS[0]}, LOCAL_FUND_PRIVKEY,
       fund_script, FUND_OUTPUT,
       {{WIN_MESSAGES_HASH[0]}, {LOSE_MESSAGES_HASH[0]}});
+  auto stop_adaptor_sigs = high_resolution_clock::now();
+  auto duration_adaptor_sigs = duration_cast<microseconds>(stop_adaptor_sigs - start_adaptor_sigs);
+  std::cout << duration_adaptor_sigs.count() << "µs : adaptor_sigs" << std::endl;
 
   bool all_valid_cet_pair_batch = DlcManager::VerifyCetAdaptorSignatures(
       cets, local_cet_adaptor_pairs,
